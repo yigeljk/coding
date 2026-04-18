@@ -2,62 +2,48 @@
     import java.util.concurrent.locks.LockSupport;
 
     public class 两个线程交替打印Alibaba {
+        public static  final String s="alibaba";
+        public static  int index=0;
+        public static final  Object lock=new Object();
 
-        static Thread t1, t2;
-
-        static String a = "hloaiaa";
-        static String b = "el,lbb";
-
-        static StringBuilder result = new StringBuilder();
-
-        static int i = 0, j = 0;
-
+        public static boolean printA=true;
         public static void main(String[] args) {
-
-            t1 = new Thread(() -> {
-                while (i < a.length()) {
-                    result.append(a.charAt(i++));
-                    sleep1s();
-
-                    LockSupport.unpark(t2); // 唤醒 t2
-
-                    if (j < b.length()) {  // 避免最后死锁
-                        LockSupport.park();
+            new Thread(()->{
+                synchronized (lock){
+                    while(index<s.length()){
+                        System.out.println(Thread.currentThread().getName()+":"+s.charAt(index));
+                        index++;
+                        lock.notify();  //唤醒另外一个线程
+                        if(index<s.length()){
+                            try{
+                                lock.wait();
+                            }catch (InterruptedException e){
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
-            });
+            },"线程1").start();
 
-            t2 = new Thread(() -> {
-                while (j < b.length()) {
-                    LockSupport.park();   // 等待 t1
-
-                    result.append(b.charAt(j++));
-                    sleep1s();
-
-                    LockSupport.unpark(t1); // 唤醒 t1
+            new Thread(()->{
+                synchronized (lock){
+                    while(index<s.length()){
+                        System.out.println(Thread.currentThread().getName()+":"+s.charAt(index));
+                        index++;
+                        lock.notify();
+                        if(index<s.length()){
+                            try{
+                                lock.wait();
+                            }catch (InterruptedException e){
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
-            });
+            },"线程2").start();
 
-            t1.start();
-            t2.start();
 
-            // 等待线程结束（简单处理）
-            try {
-                t1.join();
-                t2.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
 
-            System.out.println(result.toString());
-        }
-
-        private static void sleep1s() {
-            try {
-                Thread.sleep(0);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
